@@ -1,142 +1,141 @@
-class Snake {
-  constructor(x, y, size) {
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext('2d');
+
+let speed = 8;
+
+let tileCount = 20;
+let tileSize = canvas.width/tileCount-2;
+let headX = 10;
+let headY = 10;
+
+let applex = 5;
+let appley = 5;
+
+let xVelocity = 0;
+let yVelocity = 0;
+const snakeParts = [];
+let tailLength = 0;
+
+let score = 0;
+
+class SnakePart {
+  constructor(x, y) {
     this.x = x;
     this.y = y;
-    this.size = size;
-    this.tail = [{x:this.x, y:this.y}]
-    this.rotateX = 0
-    this.rotateY = 1
-  }
-  
-  move() {
-    let newRect;
-    if(this.rotateX === 1) {
-      newRect = {
-        x: this.tail[this.tail.length - 1].x + this.size,
-        y: this.tail[this.tail.length - 1].y
-      }
-    } else if(this.rotateX === -1) {
-      newRect = {
-        x: this.tail[this.tail.length - 1].x - this.size,
-        y: this.tail[this.tail.length - 1].y
-      }
-    } else if(this.rotateY === 1) {
-      newRect = {
-        x: this.tail[this.tail.length - 1].x,
-        y: this.tail[this.tail.length - 1].y + this.size
-      }
-    } else if(this.rotateY === -1) {
-      newRect = {
-        x: this.tail[this.tail.length - 1].x,
-        y: this.tail[this.tail.length - 1].y - this.size
-      }
-    }
-
-    this.tail.shift()
-    this.tail.push(newRect)
   }
 }
 
-class Apple {
-  constructor() {
-    let isTouching;
-    while(true) {
-      isTouching = false;
-      this.x = Math.floor(Math.random() * canvas.width / snake.size) * snake.size
-      this.y = Math.floor(Math.random() * canvas.height / snake.size) * snake.size
-      for(let i=0; i<snake.tail.length; i++) {
-        if(this.x == snake.tail[i].x && this.y === snake.tail[i].y) {
-          isTouching = true;
-        }
-      }
-      this.size = snake.size
-      this.color = 'pink'
-      if(!isTouching) {
-        break;
-      }
+function drawGame() {
+  changeSnakePosition();
+  let result = isGameOver();
+  if(result) {
+    return;
+  }
+
+  clearScreen();
+  drawSnake();
+  checkApple();
+  drawApple();
+
+  drawScore();
+
+  setTimeout(drawGame, 1000/speed);
+}
+
+function isGameOver() {
+  let gameOver = false;
+
+  if(yVelocity === 0 && xVelocity === 0) {
+    return false;
+  }
+
+  if(headX < 0) {
+    gameOver = true;
+  } else if(headY < 0) {
+    gameOver = true;
+  } else if(headX > tileCount) {
+    gameOver = true;
+  } else if(headY > tileCount) {
+    gameOver = true;
+  }
+
+  for(let i=0; i<snakeParts.length; i++) {
+    let part = snakeParts[i];
+    if(part.x === headX && part.y === headY) {
+      gameOver = true;
+      break;
     }
   }
-}
 
-let canvas = document.getElementById("canvas");
-let snake = new Snake(20, 20, 20);
-let apple = new Apple();
-let canvasContext = canvas.getContext("2d");
-
-window.onload = () => {
-  gameLoop();
-};
-
-function gameLoop() {
-  setInterval(show, 1000/15);
-}
-
-function show() {
-  update();
-  draw();
-}
-
-function update() {
-  canvasContext.clearRect(0, 0, canvas.width, canvas.height);
-  snake.move()
-  eatApple()
-  checkHitWall();
-}
-
-function checkHitWall() {
-  let headTail = snake.tail[snake.tail.length - 1]
-  if(headTail.x == -snake.size) {
-    headTail.x = canvas.width - snake.size
-  } else if(headTail.x == canvas.width) {
-    headTail.x = 0
-  } else if(headTail.y == -snake.size) {
-    headTail.y = canvas.height - snake.size
-  } else if(headTail.y == canvas.height) {
-    headTail.y = 0
+  if(gameOver) {
+    ctx.fillStyle = 'white';
+    ctx.font = '50px Verdana';
+    ctx.fillText("Game Over!", canvas.width/6.5, canvas.height/2);
   }
 
+  return gameOver;
 }
 
-function eatApple() {
-  if(snake.tail[snake.tail.length - 1].x == apple.x &&
-    snake.tail[snake.tail.length -1].y == apple.y) {
-      snake.tail[snake.tail.length] = {x:apple.x, y:apple.y}
-      apple = new Apple();
+function drawScore() {
+  ctx.fillStyle = 'white';
+  ctx.font = '20px';
+  ctx.fillText("Score: " + score, canvas.width-50, 10);
+}
+
+function clearScreen() {
+  ctx.fillStyle = 'gray';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+function drawSnake() {
+  ctx.fillStyle = 'orange';
+  ctx.fillRect(headX*tileCount, headY*tileCount, tileSize, tileSize);
+
+  ctx.fillStyle = 'green';
+  for(let i=0; i<snakeParts.length; i++) {
+    let part = snakeParts[i];
+    ctx.fillRect(part.x*tileCount, part.y*tileCount, tileSize, tileSize);
+  }
+
+  snakeParts.push(new SnakePart(headX, headY));
+  while(snakeParts.length > tailLength) {
+    snakeParts.shift();
   }
 }
 
-function draw() {
-  createRect(0, 0, canvas.width, canvas.height, "black")
-  createRect(0, 0, canvas.width, canvas.height)
-  for(let i=0; i<snake.tail.length; i++) {
-    createRect(snake.tail[i].x + 2.5, snake.tail[i].y + 2.5, snake.size - 5, snake.size - 5, 'white')
+function drawApple() {
+  ctx.fillStyle = "red"
+  ctx.fillRect(applex*tileCount, appley*tileCount, tileSize, tileSize);
+}
+
+function checkApple() {
+  if(applex === headX && appley === headY) {
+    applex = Math.floor(Math.random() * tileCount);
+    appley = Math.floor(Math.random() * tileCount);
+    tailLength++;
+    score++
   }
-
-  canvasContext.font = "20px Arial"
-  canvasContext.fillStyle = '#00FF42'
-  canvasContext.fillText("score: " + (snake.tail.length - 1), canvas.width -120, 40);
-  createRect(apple.x, apple.y, apple.size, apple.size, apple.color)
 }
 
-function createRect(x, y, width, height, color) {
-  canvasContext.fillStyle = color
-  canvasContext.fillRect(x, y, width, height)
+function changeSnakePosition() {
+  headX = headX + xVelocity;
+  headY = headY + yVelocity;
 }
 
-window.addEventListener("keydown", (e) => {
-  setTimeout(() => {
-    if(e.key == 'ArrowLeft' && snake.rotateX != 1) {
-      snake.rotateX = -1
-      snake.rotateY = 0
-    } else if(e.key == 'ArrowUp' && snake.rotateY != 1) {
-      snake.rotateX = 0
-      snake.rotateY = -1
-    } else if(e.key == 'ArrowRight' && snake.rotateX != -1) {
-      snake.rotateX = 1
-      snake.rotateY = 0
-    } else if(e.key == 'ArrowDown' && snake.rotateY != -1) {
-      snake.rotateX = 0
-      snake.rotateY = 1
-    }
-  })
-})
+document.body.addEventListener("keydown", (e) => {
+  if(e.key == 'ArrowUp' || e.key == 'w') {
+    yVelocity = -1;
+    xVelocity = 0;
+  } else if(e.key == 'ArrowDown' || e.key == 's') {
+    yVelocity = 1;
+    xVelocity = 0;
+  } else if(e.key == 'ArrowRight' || e.key == 'd') {
+    yVelocity = 0;
+    xVelocity = 1;
+  } else if(e.key == 'ArrowLeft' || e.key == 'a') {
+    yVelocity = 0;
+    xVelocity = -1;
+  }
+});
+
+drawGame();
